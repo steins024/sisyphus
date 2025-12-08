@@ -2,17 +2,25 @@
 
 A practice project to build an AI agent system from scratch, supporting chat completion, tool use, MCP, sub-agents, and skills.
 
-## Tech Stack (To Be Decided)
+## Tech Stack
 
-### Language Options
-| Option | Pros | Cons |
-|--------|------|------|
-| **Python** | Rich LLM ecosystem, fast prototyping, great libraries | Runtime type checking only |
-| **TypeScript** | Strong typing, good async, works for CLI/web | Smaller LLM ecosystem |
-| **Rust** | Performance, safety | Slower development |
-| **Go** | Great for CLI, concurrency | Less LLM tooling |
+### Language: Python 3.11+
+- Best LLM ecosystem (anthropic, openai SDKs are Python-first)
+- Official MCP SDK is Python
+- Fast prototyping for practice project
+- Use Pydantic + type hints + pyright to mitigate typing weakness
 
-**Decision**: TBD
+### Python Stack
+```
+CLI:         typer
+LLM Client:  anthropic SDK
+Validation:  pydantic
+Config:      PyYAML
+Async:       asyncio + httpx
+Testing:     pytest
+Linting:     ruff
+Type Check:  pyright
+```
 
 ### UX Options
 | Option | Description | Complexity |
@@ -75,10 +83,8 @@ A practice project to build an AI agent system from scratch, supporting chat com
 
 ## Open Questions
 
-1. Language choice?
-2. LLM provider(s) to support?
-3. CLI framework preference?
-4. Configuration approach (env vars, config file, both)?
+1. UX choice (CLI/REPL recommended for Phase 1)?
+2. Configuration approach (env vars, config file, both)?
 
 ## Project Structure (Draft)
 
