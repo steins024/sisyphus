@@ -22,7 +22,7 @@ class TestLLMConfig:
         config = LLMConfig()
         assert config.base_url == "http://localhost:4141"
         assert config.api_key == "dummy"
-        assert config.model == "claude-3-sonnet"
+        assert config.model == "claude-opus-4.5"
         assert config.max_tokens == 4096
         assert config.timeout == 60.0
 

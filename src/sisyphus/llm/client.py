@@ -30,7 +30,7 @@ class LLMConfig(BaseSettings):
         description="API key (not used by Copilot API but required by SDK)",
     )
     model: str = Field(
-        default="claude-3-sonnet",
+        default="claude-opus-4.5",
         description="Model to use for completions",
     )
     max_tokens: int = Field(

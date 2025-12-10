@@ -52,7 +52,7 @@ import httpx
 response = httpx.post(
     "http://localhost:4141/v1/messages",
     json={
-        "model": "claude-3-sonnet",  # or gpt-4.1
+        "model": "claude-opus-4.5",  # or gpt-4.1
         "max_tokens": 1024,
         "messages": [
             {"role": "user", "content": "Hello, world!"}
@@ -74,7 +74,7 @@ response = httpx.post(
       "text": "Hello! How can I help you today?"
     }
   ],
-  "model": "claude-3-sonnet",
+  "model": "claude-opus-4.5",
   "stop_reason": "end_turn",
   "usage": {
     "input_tokens": 10,
@@ -116,7 +116,7 @@ client = anthropic.Anthropic(
 )
 
 message = client.messages.create(
-    model="claude-3-sonnet",
+    model="claude-opus-4.5",
     max_tokens=1024,
     messages=[
         {"role": "user", "content": "Hello!"}
@@ -130,7 +130,7 @@ Copilot API supports streaming responses:
 
 ```python
 with client.messages.stream(
-    model="claude-3-sonnet",
+    model="claude-opus-4.5",
     max_tokens=1024,
     messages=[{"role": "user", "content": "Hello!"}]
 ) as stream:
@@ -144,7 +144,7 @@ Tool use follows the Anthropic format:
 
 ```python
 response = client.messages.create(
-    model="claude-3-sonnet",
+    model="claude-opus-4.5",
     max_tokens=1024,
     tools=[
         {
@@ -172,7 +172,7 @@ Environment variables for Sisyphus:
 COPILOT_API_URL=http://localhost:4141
 
 # Optional
-COPILOT_API_MODEL=claude-3-sonnet
+COPILOT_API_MODEL=claude-opus-4.5
 COPILOT_API_MAX_TOKENS=4096
 ```
 
