@@ -20,10 +20,10 @@
 
 ## Success Criteria
 - [x] Project builds and passes all linting/type checks
-- [ ] User can start REPL and have a conversation with the LLM
-- [ ] Conversation history persists within a session
-- [ ] Responses stream to terminal in real-time
-- [ ] Clean exit handling (Ctrl+C, /quit command)
+- [x] User can start REPL and have a conversation with the LLM
+- [x] Conversation history persists within a session
+- [x] Responses stream to terminal in real-time
+- [x] Clean exit handling (Ctrl+C, /quit command)
 
 ## Key Risks
 1. **Copilot API availability** - Proxy may have issues; need fallback plan

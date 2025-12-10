@@ -4,7 +4,7 @@
 
 - [x] **Language**: Python 3.11+
 - [x] **LLM Provider**: Anthropic (start with Claude, add others later)
-- [ ] **UX**: CLI/REPL (recommended for Phase 1)
+- [x] **UX**: CLI/REPL (recommended for Phase 1)
 
 ### Python Stack
 ```
@@ -24,9 +24,9 @@ Type Check:  pyright
 
 - [x] Project setup (package manager, linting, formatting)
 - [x] Basic LLM client wrapper
-- [ ] Simple REPL interface
-- [ ] Message history management
-- [ ] Streaming response support
+- [x] Simple REPL interface
+- [x] Message history management
+- [x] Streaming response support
 
 ---
 
