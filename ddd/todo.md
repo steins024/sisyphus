@@ -22,7 +22,7 @@ Type Check:  pyright
 
 ## Phase 1: Minimal Chat Completion
 
-- [ ] Project setup (package manager, linting, formatting)
+- [x] Project setup (package manager, linting, formatting)
 - [ ] Basic LLM client wrapper
 - [ ] Simple REPL interface
 - [ ] Message history management

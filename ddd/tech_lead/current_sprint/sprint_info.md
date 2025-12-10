@@ -19,7 +19,7 @@
 - **Buffer**: 20% (~8-10 hours for unexpected issues)
 
 ## Success Criteria
-- [ ] Project builds and passes all linting/type checks
+- [x] Project builds and passes all linting/type checks
 - [ ] User can start REPL and have a conversation with the LLM
 - [ ] Conversation history persists within a session
 - [ ] Responses stream to terminal in real-time
