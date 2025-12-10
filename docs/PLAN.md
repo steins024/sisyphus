@@ -30,14 +30,14 @@ Type Check:  pyright
 | **Web UI** | Browser-based interface | High |
 | **API-first** | HTTP server, UI added later | Medium |
 
-**Decision**: TBD
+**Decision**: CLI/REPL (for Phase 1)
 
 ### LLM Provider
-- [ ] Anthropic (Claude)
-- [ ] OpenAI
-- [ ] Multi-provider support
+- [x] Copilot API (via GitHub Copilot subscription)
+- [ ] Direct Anthropic (future)
+- [ ] OpenAI (future)
 
-**Decision**: TBD
+**Decision**: Copilot API - see [LLM Integration](./llm-integration.md) for details
 
 ## Architecture Principles
 
@@ -107,6 +107,7 @@ sisyphus/
 
 ## References
 
+- [Copilot API Proxy](https://github.com/ericc-ch/copilot-api) - GitHub Copilot as OpenAI/Anthropic compatible API
 - [Anthropic Claude API](https://docs.anthropic.com/)
 - [OpenAI API](https://platform.openai.com/docs/)
 - [Model Context Protocol](https://modelcontextprotocol.io/)

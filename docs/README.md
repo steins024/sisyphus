@@ -8,6 +8,7 @@ This folder contains long-term documentation for the Sisyphus AI Agent Framework
 |----------|-------------|
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | System architecture, component relationships, and design diagrams |
 | [PLAN.md](./PLAN.md) | Tech stack decisions, implementation roadmap, and project structure |
+| [llm-integration.md](./llm-integration.md) | LLM provider integration (Copilot API) |
 
 ## Related
 
