@@ -1,0 +1,29 @@
+name: terminal
+description: Execute shell commands with timeout support and output capture
+parameters:
+  type: object
+  properties:
+    command:
+      type: string
+      description: The shell command to execute
+    working_dir:
+      type: string
+      description: Working directory for the command (default current directory)
+    timeout:
+      type: number
+      description: Command timeout in seconds
+      default: 30.0
+      minimum: 0.1
+    shell:
+      type: boolean
+      description: Whether to execute through shell (default false for safety)
+      default: false
+  required:
+    - command
+handler: sisyphus.tools.terminal.terminal
+timeout: 60.0
+async: true
+metadata:
+  category: execution
+  safe: false
+  requires_confirmation: true

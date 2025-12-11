@@ -1,0 +1,33 @@
+name: write_file
+description: Write content to a file on the filesystem with atomic operations and directory creation
+parameters:
+  type: object
+  properties:
+    file_path:
+      type: string
+      description: Absolute or relative path to the file to write
+    content:
+      type: string
+      description: Content to write to the file
+    encoding:
+      type: string
+      description: File encoding (default utf-8)
+      default: utf-8
+    create_dirs:
+      type: boolean
+      description: Whether to create parent directories if they don't exist
+      default: true
+    overwrite:
+      type: boolean
+      description: Whether to overwrite existing files
+      default: true
+  required:
+    - file_path
+    - content
+handler: sisyphus.tools.filesystem.write_file
+timeout: 30.0
+async: false
+metadata:
+  category: filesystem
+  safe: false
+  requires_confirmation: true

@@ -88,6 +88,7 @@ class LLMClient:
         messages: list[dict[str, Any]],
         *,
         system: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
         model: str | None = None,
         max_tokens: int | None = None,
     ) -> anthropic.types.Message:
@@ -96,6 +97,7 @@ class LLMClient:
         Args:
             messages: List of message dicts with 'role' and 'content' keys.
             system: Optional system prompt.
+            tools: Optional list of tool definitions for tool use.
             model: Model to use (overrides config).
             max_tokens: Max tokens in response (overrides config).
 
@@ -114,6 +116,8 @@ class LLMClient:
             }
             if system is not None:
                 kwargs["system"] = system
+            if tools is not None:
+                kwargs["tools"] = tools
 
             return cast(
                 anthropic.types.Message, self._client.messages.create(**kwargs)
@@ -133,6 +137,7 @@ class LLMClient:
         messages: list[dict[str, Any]],
         *,
         system: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
         model: str | None = None,
         max_tokens: int | None = None,
     ) -> Iterator[str]:
@@ -141,6 +146,7 @@ class LLMClient:
         Args:
             messages: List of message dicts with 'role' and 'content' keys.
             system: Optional system prompt.
+            tools: Optional list of tool definitions for tool use.
             model: Model to use (overrides config).
             max_tokens: Max tokens in response (overrides config).
 
@@ -159,6 +165,8 @@ class LLMClient:
             }
             if system is not None:
                 kwargs["system"] = system
+            if tools is not None:
+                kwargs["tools"] = tools
 
             with self._client.messages.stream(**kwargs) as stream:
                 yield from stream.text_stream

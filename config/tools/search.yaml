@@ -1,0 +1,32 @@
+name: search
+description: Search for patterns in files using regex, with file filtering and case sensitivity options
+parameters:
+  type: object
+  properties:
+    pattern:
+      type: string
+      description: The search pattern (regex supported)
+    path:
+      type: string
+      description: Directory or file to search in
+      default: "."
+    file_pattern:
+      type: string
+      description: File name pattern to filter (e.g., "*.py", "test_*.py")
+    case_sensitive:
+      type: boolean
+      description: Whether the search is case-sensitive
+      default: true
+    max_results:
+      type: integer
+      description: Maximum number of results to return
+      default: 100
+      minimum: 1
+  required:
+    - pattern
+handler: sisyphus.tools.search.search
+timeout: 60.0
+async: false
+metadata:
+  category: search
+  safe: true

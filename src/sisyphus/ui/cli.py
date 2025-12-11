@@ -1,15 +1,24 @@
 """CLI REPL interface for Sisyphus."""
 
+from pathlib import Path
 from typing import Annotated
 
 import typer
 from rich.console import Console
-from rich.live import Live
 from rich.markdown import Markdown
 from rich.panel import Panel
 
 from sisyphus.core import Conversation
+from sisyphus.execution.tool_orchestrator import ToolOrchestrator
 from sisyphus.llm import LLMAPIError, LLMClient, LLMConfig, LLMConnectionError
+from sisyphus.llm.response_parser import (
+    extract_text_content,
+    has_tool_calls,
+    message_to_dict,
+    parse_tool_calls,
+)
+from sisyphus.llm.tool_formatter import format_tools_for_anthropic
+from sisyphus.registry.tool_registry import ToolRegistry
 
 app = typer.Typer(
     name="sisyphus",
@@ -24,15 +33,19 @@ SPECIAL_COMMANDS: dict[str, str] = {
     "/quit": "Exit the chat (alias for /exit)",
     "/clear": "Clear conversation history",
     "/help": "Show available commands",
+    "/tools": "List available tools",
 }
 
 
-def handle_special_command(cmd: str, conversation: Conversation) -> bool:
+def handle_special_command(
+    cmd: str, conversation: Conversation, registry: ToolRegistry | None = None
+) -> bool:
     """Handle special commands.
 
     Args:
         cmd: The command string (e.g., "/exit").
         conversation: The current conversation.
+        registry: Optional tool registry for /tools command.
 
     Returns:
         True if command was handled, False otherwise.
@@ -55,47 +68,108 @@ def handle_special_command(cmd: str, conversation: Conversation) -> bool:
             console.print(f"  [cyan]{command}[/cyan]: {desc}")
         console.print()
         return True
+    elif cmd_lower == "/tools":
+        if registry is None:
+            console.print("[yellow]Tool registry not initialized.[/yellow]\n")
+            return True
+        tools = registry.list()
+        if not tools:
+            console.print("[dim]No tools registered.[/dim]\n")
+        else:
+            console.print("\n[bold]Available Tools:[/bold]")
+            for tool_name in tools:
+                definition = registry.get_definition(tool_name)
+                if definition:
+                    console.print(
+                        f"  [cyan]{tool_name}[/cyan]: {definition.description}"
+                    )
+            console.print()
+        return True
 
     return False
 
 
-def stream_response(
+def handle_message_with_tools(
     client: LLMClient,
     conversation: Conversation,
-    use_markdown: bool = True,
+    registry: ToolRegistry,
+    orchestrator: ToolOrchestrator,
+    user_input: str,
 ) -> str:
-    """Stream response from LLM with live display.
+    """Handle a user message with full tool use support.
+
+    This implements the tool use loop:
+    1. Send message to LLM with tools
+    2. If LLM wants to use tools, execute them
+    3. Send results back to LLM
+    4. Repeat until LLM responds with text
 
     Args:
-        client: The LLM client.
-        conversation: The current conversation with messages.
-        use_markdown: Whether to render as markdown.
+        client: The LLM client
+        conversation: The current conversation
+        registry: Tool registry with available tools
+        orchestrator: Tool orchestrator for execution
+        user_input: The user's message
 
     Returns:
-        The complete response text.
+        The final text response from the assistant
+
+    Raises:
+        LLMConnectionError: If connection fails
+        LLMAPIError: If API returns an error
     """
-    response_text = ""
-    messages = conversation.to_api_format()
-    system = conversation.system_prompt
+    # Add user message to conversation
+    conversation.add_user_message(user_input)
 
-    if use_markdown:
-        with Live(
-            Markdown(""),
-            refresh_per_second=10,
-            console=console,
-            vertical_overflow="visible",
-        ) as live:
-            for chunk in client.stream_message(messages, system=system):
-                response_text += chunk
-                live.update(Markdown(response_text))
-    else:
-        console.print("[bold blue]Assistant:[/bold blue] ", end="")
-        for chunk in client.stream_message(messages, system=system):
-            response_text += chunk
-            console.print(chunk, end="")
-        console.print()
+    # Format tools for API
+    tools = format_tools_for_anthropic(registry)
 
-    return response_text
+    # Tool use loop (max 5 iterations to prevent infinite loops)
+    max_iterations = 5
+    for iteration in range(max_iterations):
+        # Call LLM
+        response = client.send_message(
+            conversation.to_api_format(),
+            system=conversation.system_prompt,
+            tools=tools if tools else None,
+        )
+
+        # Check if response contains tool calls
+        if not has_tool_calls(response):
+            # No tool use - extract text and return
+            text = extract_text_content(response)
+            conversation.add_assistant_message(text)
+            return text
+
+        # Response has tool calls - show indicator
+        tool_calls = parse_tool_calls(response)
+        console.print(
+            f"[dim]🔧 Using {len(tool_calls)} tool(s)...[/dim]",
+            end=" ",
+        )
+
+        # Add assistant message with tool use to conversation
+        response_dict = message_to_dict(response)
+        conversation.add_structured_message(
+            response_dict["role"], response_dict["content"]
+        )
+
+        # Execute tools
+        tool_results = orchestrator.execute_tool_calls(tool_calls)
+
+        # Show completion
+        console.print("[dim]✓[/dim]")
+
+        # Format results for LLM
+        result_blocks = orchestrator.format_results_for_llm(tool_results)
+
+        # Add tool results to conversation
+        conversation.add_tool_result_message(result_blocks)
+
+    # Max iterations reached
+    error_msg = "Error: Maximum tool use iterations reached"
+    conversation.add_assistant_message(error_msg)
+    return error_msg
 
 
 @app.command()
@@ -136,11 +210,37 @@ def chat(
 
     conversation = Conversation(system_prompt=system)
 
+    # Initialize tool registry and register built-in tools
+    registry = ToolRegistry.get_instance()
+    # Tools are at project root: config/tools
+    # __file__ is at: src/sisyphus/ui/cli.py
+    # So we need to go up 4 levels: cli.py -> ui -> sisyphus -> src -> project_root
+    tools_dir = Path(__file__).parent.parent.parent.parent / "config" / "tools"
+
+    try:
+        if tools_dir.exists():
+            registered = registry.register_from_yaml_directory(str(tools_dir))
+            tools_count = len(registered)
+        else:
+            tools_count = 0
+    except Exception as e:
+        console.print(f"[yellow]Warning: Failed to register tools:[/yellow] {e}")
+        tools_count = 0
+
+    # Create tool orchestrator for executing tool calls
+    orchestrator = ToolOrchestrator(registry)
+
     # Welcome message
+    tools_msg = (
+        f"Tools: [cyan]{tools_count} registered[/cyan]\n"
+        if tools_count > 0
+        else ""
+    )
     console.print(
         Panel(
             "[bold]Sisyphus Chat[/bold]\n"
             f"Model: [cyan]{config.model}[/cyan]\n"
+            f"{tools_msg}"
             "Type [cyan]/help[/cyan] for commands, [cyan]Ctrl+C[/cyan] to exit",
             title="Welcome",
             border_style="blue",
@@ -160,20 +260,21 @@ def chat(
 
             # Check for special commands
             if user_input.strip().startswith("/") and handle_special_command(
-                user_input, conversation
+                user_input, conversation, registry
             ):
                 continue
 
-            # Add user message
-            conversation.add_user_message(user_input)
-
-            # Get and display response
+            # Get and display response with tool support
             console.print()
             try:
-                response_text = stream_response(
-                    client, conversation, use_markdown=not no_markdown
+                response_text = handle_message_with_tools(
+                    client, conversation, registry, orchestrator, user_input
                 )
-                conversation.add_assistant_message(response_text)
+                # Display the response
+                if not no_markdown:
+                    console.print(Markdown(response_text))
+                else:
+                    console.print(f"[bold blue]Assistant:[/bold blue] {response_text}")
             except LLMConnectionError as e:
                 console.print(f"\n[red]Connection error:[/red] {e}")
                 console.print(
