@@ -74,10 +74,159 @@ You manage the `./.ddd` folder for active development tracking:
 4. Add or update an index/README when structure changes
 5. Remove or archive obsolete documentation
 
-### File Naming Conventions
-- Use lowercase with hyphens for readability (e.g., `api-authentication-design.md`)
-- Sprint folders: `yymmdd` (e.g., `250115` for January 15, 2025)
-- Dev logs: `dev_log_yymmdd.md` (e.g., `dev_log_250115.md` for January 15, 2025)
+## Conventions
+
+### File and Folder Naming Conventions
+**Documentation Files:**
+- Use `UPPERCASE_WITH_UNDERSCORES.md` for all documentation files
+- Examples: `ARCHITECTURE.md`, `TOOL_REGISTRATION.md`, `LLM_INTEGRATION.md`
+- Keep names descriptive but concise
+- Use underscores to separate words
+
+**Sprint Folders:**
+- Format: `yymmdd` (e.g., `251211` for December 11, 2025)
+- Located in `./.ddd/{yymmdd}/`
+
+**Dev Logs:**
+- Format: `dev_log_yymmdd.md` (e.g., `dev_log_251211.md`)
+- Located in `./.ddd/{yymmdd}/dev_log_yymmdd.md`
+
+**Code Files:**
+- Python modules: `snake_case.py`
+- Test files: `test_{module_name}.py`
+- Configuration: `lowercase.yaml` or `lowercase.json`
+
+### Code Organization Conventions
+**Module Structure:**
+- Group related functionality into modules
+- Use `__init__.py` to expose public API
+- Private modules prefixed with `_` are internal only
+
+**Testing:**
+- One test file per module: `test_{module}.py`
+- Test classes group related tests: `TestClassName`
+- Test methods describe what is tested: `test_feature_behavior`
+- Use fixtures for common setup
+
+**Type Hints:**
+- All functions must have type hints
+- Use `-> None` for functions without return
+- Import types from `typing` or `collections.abc`
+- Prefer protocol types over concrete classes for interfaces
+
+### Documentation Conventions
+**Code Documentation:**
+- All public classes and functions must have docstrings
+- Use Google-style docstring format
+- Include Args, Returns, Raises sections where applicable
+
+**Markdown Documentation:**
+- Use ATX-style headers (`#`, `##`, `###`)
+- Include table of contents for long documents
+- Use code fences with language identifiers
+- Link between related documents
+
+**Architecture Documentation:**
+- Include ASCII diagrams for system flows
+- Document design decisions with rationale
+- List alternatives considered
+- Note future implications
+
+### Git and Version Control
+**Commit Messages:**
+- Use conventional commit format: `type: subject`
+- Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`
+- Keep subject line under 72 characters
+- Use imperative mood: "add feature" not "added feature"
+- Capitalize first letter of subject
+- No period at end of subject line
+- Include detailed context in commit body for non-trivial changes
+- Separate subject from body with blank line
+
+**Commit Description Format:**
+```
+type: Brief summary of change (50 chars or less)
+
+Detailed explanation of what changed and why. Wrap at 72 characters.
+Include context, motivation, and any important details.
+
+- Use bullet points for multiple items
+- Reference issues: Fixes #123
+- Note breaking changes: BREAKING CHANGE: description
+```
+
+**Examples:**
+- `feat: implement tool executor with timeout support`
+- `fix: correct parameter validation for async tools`
+- `docs: add TOOL_REGISTRATION documentation`
+- `refactor: simplify tool type detection logic`
+- `test: add comprehensive executor timeout tests`
+- `chore: update jsonschema dependency to 4.23.0`
+
+**Branch Naming:**
+- `main` - stable production code
+- `feature/{name}` - new features
+- `fix/{name}` - bug fixes
+
+**Pull Request Guidelines:**
+- All changes to `main` must go through a pull request
+- No direct commits to `main` branch
+- PR title should follow commit message format: `type: Brief description`
+- PR description must be informational and well-formatted
+
+**Pull Request Description Format:**
+```markdown
+## Summary
+Brief overview of what this PR accomplishes (1-3 sentences).
+
+## Changes
+- Bullet point list of specific changes made
+- Group related changes together
+- Be specific and comprehensive
+
+## Motivation
+Why these changes are needed. What problem does this solve?
+
+## Technical Details
+- Architecture decisions made
+- Design patterns used
+- Dependencies added/changed
+- Performance considerations
+
+## Testing
+- [ ] Unit tests added/updated
+- [ ] Integration tests added/updated
+- [ ] Manual testing performed
+- [ ] All tests passing
+
+## Test Coverage
+- X new tests added
+- Current coverage: X%
+- Test areas: [list key test scenarios]
+
+## Documentation
+- [ ] Code comments added/updated
+- [ ] API documentation updated
+- [ ] README updated (if needed)
+- [ ] Architecture docs updated (if needed)
+
+## Breaking Changes
+List any breaking changes and migration steps (if applicable).
+
+## Related Issues
+- Closes #123
+- Relates to #456
+
+## Screenshots/Examples
+Include if UI changes or new features with visible output.
+```
+
+**PR Review Checklist:**
+- Code follows project conventions
+- All tests pass (pytest, pyright, ruff)
+- Documentation is complete and accurate
+- No unnecessary files or changes included
+- Commit history is clean and logical
 
 ## Quality Standards
 
