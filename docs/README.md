@@ -12,5 +12,5 @@ This folder contains long-term documentation for the Sisyphus AI Agent Framework
 
 ## Related
 
-- **Development Tracking**: See `../ddd/` for current sprint logs and task tracking
-- **Todo List**: See `../ddd/todo.md` for current tasks and priorities
+- **Development Tracking**: See `../.ddd/` for current sprint logs and task tracking
+- **Todo List**: See `../.ddd/todo.md` for current tasks and priorities
