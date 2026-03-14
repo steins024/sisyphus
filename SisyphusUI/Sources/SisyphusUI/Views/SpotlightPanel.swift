@@ -25,4 +25,12 @@ class SpotlightPanel: NSPanel {
 
     // NSPanel requires this
     override var canBecomeKey: Bool { true }
+
+    func updateHeight(_ height: CGFloat) {
+        var frame = self.frame
+        let oldHeight = frame.height
+        frame.size.height = height
+        frame.origin.y -= (height - oldHeight) // grow upward
+        self.setFrame(frame, display: true, animate: true)
+    }
 }

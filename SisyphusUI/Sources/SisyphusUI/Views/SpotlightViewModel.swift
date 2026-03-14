@@ -31,6 +31,7 @@ class SpotlightViewModel: ObservableObject {
         messages.append(userMsg)
         isExpanded = true
         isLoading = true
+        updatePanelSize()
 
         let apiMode = mode == .fireAndForget ? "fire-forget" : nil
 
@@ -78,9 +79,16 @@ class SpotlightViewModel: ObservableObject {
         sessionId = nil
         isExpanded = false
         currentTask = nil
+        updatePanelSize()
+    }
+
+    func updatePanelSize() {
+        let height = isExpanded ? min(CGFloat(messages.count * 60 + 80), SisyphusConstants.panelMaxHeight) : SisyphusConstants.panelCollapsedHeight
+        NotificationCenter.default.post(name: .resizePanel, object: nil, userInfo: ["height": height])
     }
 }
 
 extension Notification.Name {
     static let dismissSpotlight = Notification.Name("dismissSpotlight")
+    static let resizePanel = Notification.Name("resizePanel")
 }

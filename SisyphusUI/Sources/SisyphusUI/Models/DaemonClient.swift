@@ -28,7 +28,10 @@ class DaemonClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
-        let session = URLSession(configuration: .default, delegate: SSEDelegate(onEvent: onEvent), delegateQueue: nil)
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 300 // 5 minutes
+        config.timeoutIntervalForResource = 600 // 10 minutes
+        let session = URLSession(configuration: config, delegate: SSEDelegate(onEvent: onEvent), delegateQueue: nil)
         let task = session.dataTask(with: request)
         task.resume()
     }

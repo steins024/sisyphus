@@ -13,11 +13,16 @@ struct SpotlightView: View {
                             ForEach(viewModel.messages) { msg in
                                 ChatBubbleView(message: msg)
                             }
+
+                            if let task = viewModel.currentTask {
+                                TaskCardView(task: task)
+                                    .padding(.horizontal)
+                            }
                         }
                         .padding()
                     }
                     .frame(maxHeight: 400)
-                    .onChange(of: viewModel.messages.count) { _ in
+                    .onChange(of: viewModel.messages.count) { oldValue, newValue in
                         if let last = viewModel.messages.last {
                             withAnimation {
                                 proxy.scrollTo(last.id, anchor: .bottom)
@@ -40,6 +45,14 @@ struct SpotlightView: View {
                     .onSubmit {
                         viewModel.send(mode: .fireAndForget)
                     }
+
+                // Hidden button for ⌘+Enter → chat mode
+                Button("") {
+                    viewModel.send(mode: .chat)
+                }
+                .keyboardShortcut(.return, modifiers: .command)
+                .frame(width: 0, height: 0)
+                .opacity(0)
 
                 if viewModel.isLoading {
                     ProgressView()

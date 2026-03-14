@@ -36,6 +36,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Listen for dismiss notification
         NotificationCenter.default.addObserver(self, selector: #selector(hidePanel), name: .dismissSpotlight, object: nil)
+
+        // Listen for resize notification
+        NotificationCenter.default.addObserver(forName: .resizePanel, object: nil, queue: .main) { [weak self] notification in
+            if let height = notification.userInfo?["height"] as? CGFloat {
+                self?.panel.updateHeight(height)
+            }
+        }
     }
 
     @objc func togglePanel() {

@@ -104,6 +104,27 @@ sisyphus agents create myworker -d "desc"     # Create a new worker
 sisyphus agents delete myworker --force       # Delete a worker
 ```
 
+### Spotlight UI (macOS)
+
+Build and run the native macOS app:
+
+```bash
+cd SisyphusUI
+swift build
+.build/debug/SisyphusUI
+```
+
+Or open `SisyphusUI/Package.swift` in Xcode.
+
+**Keyboard shortcuts:**
+- **⌥ Space** — Toggle Sisyphus panel
+- **Return** — Send prompt (fire & forget)
+- **⌘ Return** — Send and open chat mode
+- **Esc** — Close panel
+- Type `/new` — Start fresh session
+
+The app runs in the menu bar (no Dock icon). Requires the Sisyphus daemon to be running.
+
 ## Workers
 
 Workers live in `~/.sisyphus/workers/`. Each worker is a directory with a `soul.md` defining its capabilities:
