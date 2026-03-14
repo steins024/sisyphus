@@ -7,7 +7,7 @@ import {
 const DEFAULT_CONFIG = `# Sisyphus Configuration
 llm:
   provider: openai
-  model: gpt-4
+  model: gpt-4o
   apiKey: ""
 
 daemon:

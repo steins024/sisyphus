@@ -38,10 +38,10 @@ program
     console.log('[placeholder] Interactive chat not yet implemented');
   });
 
-// status
+// system-status (top-level status of the whole system, distinct from daemon status)
 program
-  .command('status')
-  .description('Show system status')
+  .command('system-status')
+  .description('Show overall system status')
   .action(() => {
     console.log('[placeholder] System status not yet implemented');
   });

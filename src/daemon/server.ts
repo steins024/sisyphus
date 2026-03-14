@@ -7,15 +7,15 @@ import type { SystemResponse } from '../shared/types.js';
 const startTime = Date.now();
 
 function cleanup(): void {
-  try { unlinkSync(PID_FILE); } catch {}
-  try { unlinkSync(SOCKET_FILE); } catch {}
+  try { unlinkSync(PID_FILE); } catch { /* noop */ }
+  try { unlinkSync(SOCKET_FILE); } catch { /* noop */ }
 }
 
 function startServer(): void {
   ensureDataDir();
 
   if (existsSync(SOCKET_FILE)) {
-    try { unlinkSync(SOCKET_FILE); } catch {}
+    try { unlinkSync(SOCKET_FILE); } catch { /* noop */ }
   }
 
   const server = http.createServer((req, res) => {
@@ -35,19 +35,12 @@ function startServer(): void {
 
   server.listen(SOCKET_FILE, () => {
     writeFileSync(PID_FILE, String(process.pid));
-    console.log(`Daemon started (PID: ${process.pid})`);
   });
 
-  const shutdown = () => {
-    console.log('Shutting down daemon...');
-    server.close(() => {
-      cleanup();
-      process.exit(0);
-    });
-    setTimeout(() => {
-      cleanup();
-      process.exit(1);
-    }, 5000);
+  const shutdown = (): void => {
+    cleanup();
+    server.close();
+    process.exit(0);
   };
 
   process.on('SIGTERM', shutdown);
