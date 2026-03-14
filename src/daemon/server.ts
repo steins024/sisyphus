@@ -10,6 +10,11 @@ import {
 } from '../agent/session.js';
 import type { ChatMessage } from '../agent/session.js';
 import type { SystemResponse } from '../shared/types.js';
+import { createTask, saveTask, loadTask, listTasks } from '../agent/task.js';
+import { spawnWorker } from '../agent/worker.js';
+import { listWorkers } from '../agent/registry.js';
+
+const TASK_PATTERN = /\[TASK:(\w+)\]\s*(.+)/s;
 
 const startTime = Date.now();
 
@@ -32,6 +37,26 @@ function jsonResponse(res: http.ServerResponse, status: number, body: unknown): 
   res.end(JSON.stringify(body));
 }
 
+function buildOrchestratorPrompt(basePrompt: string): string {
+  const workers = listWorkers();
+  const workerList = workers.map(w => `- ${w.name}: ${w.description}`).join('\n');
+  return `${basePrompt}
+
+## Available Workers
+You have the following workers available to delegate tasks to:
+${workerList}
+
+## Task Delegation
+When a user asks you to write code, build something, or do any task that should be delegated to a worker, respond with the pattern:
+[TASK:worker_name] detailed description of the task
+
+For coding tasks, use [TASK:coder]. For example:
+User: "Write a python calculator"
+You: [TASK:coder] Write a Python calculator program that supports addition, subtraction, multiplication, and division with a clean CLI interface.
+
+For normal conversation, questions, or clarifications, just respond normally without the [TASK:] pattern.`;
+}
+
 async function handleChat(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   try {
     const raw = await readBody(req);
@@ -44,15 +69,14 @@ async function handleChat(req: http.IncomingMessage, res: http.ServerResponse): 
 
     const config = loadConfig();
     const session = sessionId ? (loadSession(sessionId) ?? getOrCreateActiveSession()) : getOrCreateActiveSession();
-    const systemPrompt = loadAgentIdentity(ORCHESTRATOR_DIR);
+    const basePrompt = loadAgentIdentity(ORCHESTRATOR_DIR);
+    const systemPrompt = buildOrchestratorPrompt(basePrompt);
 
     // Build messages for LLM
     const now = new Date().toISOString();
     const userMsg: ChatMessage = { role: 'user', content: message, timestamp: now };
     session.messages.push(userMsg);
 
-    // System prompt is injected per-request, never stored in session.
-    // Filter is defensive — session.messages should only contain user/assistant.
     const llmMessages: ChatMessage[] = [
       { role: 'system', content: systemPrompt, timestamp: now },
       ...session.messages,
@@ -74,6 +98,21 @@ async function handleChat(req: http.IncomingMessage, res: http.ServerResponse): 
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown LLM error';
       res.write(`data: ${JSON.stringify({ type: 'error', content: errorMsg })}\n\n`);
+    }
+
+    // Check for task pattern in response
+    const taskMatch = fullResponse.match(TASK_PATTERN);
+    if (taskMatch) {
+      const workerName = taskMatch[1];
+      const taskDescription = taskMatch[2].trim();
+      const task = createTask(taskDescription);
+      task.assignedTo = workerName;
+      saveTask(task);
+
+      res.write(`data: ${JSON.stringify({ type: 'task_created', taskId: task.id, description: taskDescription, worker: workerName })}\n\n`);
+
+      // Spawn worker async
+      spawnWorker(workerName, task);
     }
 
     if (fullResponse) {
@@ -125,6 +164,16 @@ function startServer(): void {
       return;
     }
 
+    if (req.method === 'GET' && url === '/api/tasks') {
+      jsonResponse(res, 200, listTasks());
+      return;
+    }
+
+    if (req.method === 'GET' && url === '/api/workers') {
+      jsonResponse(res, 200, listWorkers());
+      return;
+    }
+
     // Match /api/sessions/:id
     const sessionMatch = url.match(/^\/api\/sessions\/([a-f0-9-]+)$/);
     if (req.method === 'GET' && sessionMatch) {
@@ -133,6 +182,18 @@ function startServer(): void {
         jsonResponse(res, 200, session);
       } else {
         jsonResponse(res, 404, { error: 'Session not found' });
+      }
+      return;
+    }
+
+    // Match /api/tasks/:id
+    const taskMatch = url.match(/^\/api\/tasks\/([a-f0-9-]+)$/);
+    if (req.method === 'GET' && taskMatch) {
+      const task = loadTask(taskMatch[1]);
+      if (task) {
+        jsonResponse(res, 200, task);
+      } else {
+        jsonResponse(res, 404, { error: 'Task not found' });
       }
       return;
     }
