@@ -15,6 +15,7 @@ import type { SystemResponse } from '../shared/types.js';
 import { createTask, saveTask, loadTask, listTasks } from '../agent/task.js';
 import { spawnWorker } from '../agent/worker.js';
 import type { WorkerDoneCallback } from '../agent/worker.js';
+import { sendNotification } from '../shared/notify.js';
 import { listWorkers } from '../agent/registry.js';
 
 const TASK_PATTERN = /\[TASK:(\w+)\]\s*(.+)/s;
@@ -178,6 +179,7 @@ async function handleChat(req: http.IncomingMessage, res: http.ServerResponse): 
     try {
       for await (const chunk of streamChat(llmMessages, config)) {
         fullResponse += chunk;
+        res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown LLM error';
@@ -194,6 +196,9 @@ async function handleChat(req: http.IncomingMessage, res: http.ServerResponse): 
       const task = createTask(taskDescription);
       task.assignedTo = workerName;
       saveTask(task);
+
+      // Tell client to discard previous streamed chunks
+      res.write(`data: ${JSON.stringify({ type: 'task_override', message: 'Response converted to task' })}\n\n`);
 
       const friendlyMsg = `📋 Task assigned to **${workerName}** (ID: ${task.id.slice(0, 8)})\n> ${taskDescription}\n\nWorking on it...`;
       res.write(`data: ${JSON.stringify({ type: 'chunk', content: friendlyMsg })}\n\n`);
@@ -213,6 +218,11 @@ async function handleChat(req: http.IncomingMessage, res: http.ServerResponse): 
         // Spawn worker without SSE callback
         const onDone: WorkerDoneCallback = (_completedTask) => {
           // Worker done — result is persisted in task file, no SSE to send
+          if (_completedTask.status === 'done') {
+            sendNotification('Sisyphus ✅', `Task completed: ${_completedTask.description}`);
+          } else if (_completedTask.status === 'failed') {
+            sendNotification('Sisyphus ❌', `Task failed: ${_completedTask.description}`);
+          }
         };
         spawnWorker(workerName, task, onDone);
         return;
@@ -235,9 +245,8 @@ async function handleChat(req: http.IncomingMessage, res: http.ServerResponse): 
       return;
     }
 
-    // Normal conversation
+    // Normal conversation — chunks already streamed
     if (fullResponse) {
-      res.write(`data: ${JSON.stringify({ type: 'chunk', content: fullResponse })}\n\n`);
       session.messages.push({
         role: 'assistant',
         content: fullResponse,

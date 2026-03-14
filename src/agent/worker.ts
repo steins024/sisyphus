@@ -3,6 +3,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Task } from './task.js';
 import { saveTask, loadTask, taskFilePath } from './task.js';
+import { sendNotification } from '../shared/notify.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -43,6 +44,7 @@ export function spawnWorker(
         current.status = 'failed';
         current.error = `Worker timed out after ${Math.round(timeoutMs / 1000)}s`;
         saveTask(current);
+        sendNotification('Sisyphus ⏰', `Task timed out: ${current.description}`);
         if (onDone) onDone(current);
       }
     }
@@ -58,6 +60,11 @@ export function spawnWorker(
         updatedTask.error = `Worker exited with code ${code}`;
         saveTask(updatedTask);
       }
+      if (updatedTask.status === 'done') {
+        sendNotification('Sisyphus ✅', `Task completed: ${updatedTask.description}`);
+      } else if (updatedTask.status === 'failed') {
+        sendNotification('Sisyphus ❌', `Task failed: ${updatedTask.description}`);
+      }
       if (onDone) onDone(updatedTask);
     }
   });
@@ -70,6 +77,7 @@ export function spawnWorker(
       current.status = 'failed';
       current.error = `Worker spawn error: ${err.message}`;
       saveTask(current);
+      sendNotification('Sisyphus ❌', `Task failed: ${current.description}`);
       if (onDone) onDone(current);
     }
   });

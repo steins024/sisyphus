@@ -3,7 +3,7 @@ import { Command } from 'commander';
 import http from 'node:http';
 import { start, stop, status } from '../daemon/manager.js';
 import { chatCommand } from './chat.js';
-import { SOCKET_FILE } from '../shared/constants.js';
+import { SOCKET_FILE, WORKERS_DIR } from '../shared/constants.js';
 
 function apiGet<T>(path: string): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -69,7 +69,9 @@ function fireAndForget(prompt: string): void {
         if (!line.startsWith('data: ')) continue;
         try {
           const event = JSON.parse(line.slice(6)) as SSEEvent;
-          if (event.type === 'task_created') {
+          if (event.type === 'task_override') {
+            process.stdout.write('\r\x1B[2K\r');
+          } else if (event.type === 'task_created') {
             console.log(`✅ Task submitted (ID: ${event.taskId?.slice(0, 8)})`);
             console.log(`   Worker: ${event.worker}`);
             console.log(`   Check status with: sisyphus tasks`);
@@ -328,6 +330,44 @@ agents
     } catch (err) {
       console.error(err instanceof Error ? err.message : 'Error');
     }
+  });
+
+agents
+  .command('create <name>')
+  .description('Create a new worker agent')
+  .option('-d, --description <desc>', 'Worker description/instructions')
+  .action(async (name: string, options: { description?: string }) => {
+    const { join } = await import('node:path');
+    const { existsSync, mkdirSync, writeFileSync } = await import('node:fs');
+    const workerDir = join(WORKERS_DIR, name);
+    if (existsSync(workerDir)) {
+      console.error(`❌ Worker "${name}" already exists at ${workerDir}`);
+      process.exit(1);
+    }
+    mkdirSync(workerDir, { recursive: true });
+    const content = options.description ?? `You are a worker agent named "${name}". Describe your capabilities by editing this file.`;
+    writeFileSync(join(workerDir, 'soul.md'), content + '\n');
+    console.log(`✅ Worker "${name}" created at ${workerDir}`);
+  });
+
+agents
+  .command('delete <name>')
+  .description('Delete a worker agent')
+  .option('-f, --force', 'Skip confirmation')
+  .action(async (name: string, options: { force?: boolean }) => {
+    const { join } = await import('node:path');
+    const { existsSync, rmSync } = await import('node:fs');
+    const workerDir = join(WORKERS_DIR, name);
+    if (!existsSync(workerDir)) {
+      console.error(`❌ Worker "${name}" does not exist`);
+      process.exit(1);
+    }
+    if (!options.force) {
+      console.error(`⚠️  Use --force to confirm deletion of worker "${name}"`);
+      process.exit(1);
+    }
+    rmSync(workerDir, { recursive: true, force: true });
+    console.log(`✅ Worker "${name}" deleted`);
   });
 
 // dashboard

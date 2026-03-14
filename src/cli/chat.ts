@@ -27,6 +27,9 @@ function postChat(message: string, sessionId?: string): Promise<void> {
               const event = JSON.parse(line.slice(6)) as { type: string; content?: string; sessionId?: string; taskId?: string; result?: string; error?: string };
               if (event.type === 'chunk' && event.content) {
                 process.stdout.write(event.content);
+              } else if (event.type === 'task_override') {
+                // Clear current line and show override message
+                process.stdout.write('\r\x1B[2K\r');
               } else if (event.type === 'error') {
                 process.stdout.write(`\n[Error: ${event.content}]`);
               } else if (event.type === 'task_created') {
