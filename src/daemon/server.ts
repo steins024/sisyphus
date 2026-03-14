@@ -12,6 +12,7 @@ import type { ChatMessage } from '../agent/session.js';
 import type { SystemResponse } from '../shared/types.js';
 import { createTask, saveTask, loadTask, listTasks } from '../agent/task.js';
 import { spawnWorker } from '../agent/worker.js';
+import type { WorkerDoneCallback } from '../agent/worker.js';
 import { listWorkers } from '../agent/registry.js';
 
 const TASK_PATTERN = /\[TASK:(\w+)\]\s*(.+)/s;
@@ -93,7 +94,7 @@ async function handleChat(req: http.IncomingMessage, res: http.ServerResponse): 
     try {
       for await (const chunk of streamChat(llmMessages, config)) {
         fullResponse += chunk;
-        res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
+        // Buffer chunks — don't stream yet (need to check for task pattern)
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown LLM error';
@@ -109,13 +110,40 @@ async function handleChat(req: http.IncomingMessage, res: http.ServerResponse): 
       task.assignedTo = workerName;
       saveTask(task);
 
+      // Show friendly message instead of raw [TASK:...] pattern
+      const friendlyMsg = `📋 Task assigned to **${workerName}** (ID: ${task.id.slice(0, 8)})\n> ${taskDescription}\n\nWorking on it...`;
+      res.write(`data: ${JSON.stringify({ type: 'chunk', content: friendlyMsg })}\n\n`);
       res.write(`data: ${JSON.stringify({ type: 'task_created', taskId: task.id, description: taskDescription, worker: workerName })}\n\n`);
 
-      // Spawn worker async
-      spawnWorker(workerName, task);
+      // Store friendly message in session instead of raw pattern
+      session.messages.push({
+        role: 'assistant',
+        content: friendlyMsg,
+        timestamp: new Date().toISOString(),
+      });
+      saveSession(session);
+
+      // Spawn worker — push result when done, then close SSE
+      const onDone: WorkerDoneCallback = (completedTask) => {
+        try {
+          if (completedTask.status === 'done') {
+            res.write(`data: ${JSON.stringify({ type: 'task_done', taskId: completedTask.id, result: completedTask.result })}\n\n`);
+          } else {
+            res.write(`data: ${JSON.stringify({ type: 'task_failed', taskId: completedTask.id, error: completedTask.error })}\n\n`);
+          }
+          res.write(`data: ${JSON.stringify({ type: 'done', sessionId: session.id })}\n\n`);
+          res.end();
+        } catch { /* client disconnected */ }
+      };
+
+      spawnWorker(workerName, task, onDone);
+      // Don't end response — wait for worker callback
+      return;
     }
 
+    // Normal conversation — stream the full response
     if (fullResponse) {
+      res.write(`data: ${JSON.stringify({ type: 'chunk', content: fullResponse })}\n\n`);
       session.messages.push({
         role: 'assistant',
         content: fullResponse,
